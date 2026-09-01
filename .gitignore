@@ -1,0 +1,12 @@
+# Données et sorties lourdes
+data/
+
+# Cache Jupyter & Python
+.ipynb_checkpoints/
+__pycache__/
+*.pyc
+
+# Docker & Environnement local
+.env
+.vscode/
+.idea/
