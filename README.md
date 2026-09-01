@@ -17,21 +17,22 @@ Chaque nuit, **TradeCorp International** reçoit ses données commerciales sous 
 
 ## 🏗️ Architecture Technique Target
 
+```
 [ Sources CSV Brutes ] ──> [ Azure ADLS Gen2 (raw/) ]
-│
-▼
-[ API Externe ] ─────────> [ Apache Spark ] <── [ Azure Key Vault (Secrets) ]
-│
-┌────────────────┴────────────────┐
-▼                                 ▼
-[ Azure ADLS Gen2 (clean/) ]          [ PostgreSQL ]
-(Fichiers Parquet)               (Table orders_enriched)
-│                                 │
-└────────────────┬────────────────┘
-│
-[ Apache Airflow ]
-(Orchestration globale DAG)
-
+                                   │
+                                   ▼
+ [ API Externe ] ─────────> [ Apache Spark ] <── [ Azure Key Vault (Secrets) ]
+                                   │
+                  ┌────────────────┴────────────────┐
+                  ▼                                 ▼
+   [ Azure ADLS Gen2 (clean/) ]          [ PostgreSQL ]
+      (Fichiers Parquet)               (Table orders_enriched)
+                  │                                 │
+                  └────────────────┬────────────────┘
+                                   │
+                          [ Apache Airflow ]
+                      (Orchestration globale DAG)
+```
 ---
 
 ## 🛠️ Stack Technique & Justifications
@@ -48,16 +49,17 @@ Chaque nuit, **TradeCorp International** reçoit ses données commerciales sous 
 
 ## 📂 Structure du Dépôt
 
+```
 brief_spark/
 ├── .gitignore                  # Exclusion des données brutes, secrets et caches
 ├── README.md                   # Documentation principale du projet
 ├── docker-compose.yml          # Définition des services Spark et Postgres
 ├── data/                       # Données brutes CSV et exports (ignoré par Git)
 └── notebooks/                  # Phase d'exploration et prototypage
-├── 01_exploration.ipynb    # Ingestion initiale et analyse de schéma
-├── 02_nettoyage.ipynb      # Traitement des nuls, jointures et filtres
-└── 03_transformations.ipynb# Window Functions (cumul) et export JDBC/Parquet
-
+    ├── 01_exploration.ipynb    # Ingestion initiale et analyse de schéma
+    ├── 02_nettoyage.ipynb      # Traitement des nuls, jointures et filtres
+    └── 03_transformations.ipynb# Window Functions (cumul) et export JDBC/Parquet
+```
 ---
 
 ## ⚡ Prise en Main Rapide
