@@ -6,6 +6,13 @@ data/
 __pycache__/
 *.pyc
 
+# Cache PyTest
+.pytest_cache/
+
+# Métadonnées & Logs Spark / Java
+*.log
+.sparkStaging/
+
 # Docker & Environnement local
 .env
 .vscode/

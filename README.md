@@ -5,33 +5,50 @@
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue?logo=postgresql)
 ![Apache Airflow](https://img.shields.io/badge/Apache%20Airflow-2.8-teal?logo=apacheairflow)
 ![Azure ADLS Gen2](https://img.shields.io/badge/Azure-ADLS%20Gen2-0078D4?logo=microsoftazure)
+![Pytest](https://img.shields.io/badge/Pytest-9.1-green?logo=pytest)
 
 ---
 
 ## 📌 Contexte & Enjeux Métier
 Chaque nuit, **TradeCorp International** reçoit ses données commerciales sous forme de fichiers CSV bruts. Le traitement était jusqu'à présent réalisé manuellement chaque matin (environ 3 heures de traitement), générant des erreurs, un manque d'historisation et une absence totale de traçabilité.
 
-**Objectif du projet :** Concevoir, conteneuriser et automatiser un pipeline Data ETL robuste, évolutif et sécurisé pour transformer les flux bruts en données enrichies exploitables par les équipes métiers et les décideurs.
+**Objectif du projet :** Industrialiser un pipeline ETL PySpark conteneurisé qui télécharge les fichiers métiers et référentiels depuis Azure ADLS Gen2, applique des transformations complexes (nettoyage, calculs financiers, conversion dynamique de devises), persiste les données enrichies en format Parquet et garantit la qualité via une suite de tests unitaires automatisés.
 
 ---
 
 ## 🏗️ Architecture Technique Target
 
 ```
-[ Sources CSV Brutes ] ──> [ Azure ADLS Gen2 (raw/) ]
-                                   │
-                                   ▼
- [ API Externe ] ─────────> [ Apache Spark ] <── [ Azure Key Vault (Secrets) ]
-                                   │
-                  ┌────────────────┴────────────────┐
-                  ▼                                 ▼
-   [ Azure ADLS Gen2 (clean/) ]          [ PostgreSQL ]
-      (Fichiers Parquet)               (Table orders_enriched)
-                  │                                 │
-                  └────────────────┬────────────────┘
-                                   │
-                          [ Apache Airflow ]
-                      (Orchestration globale DAG)
+                                    ┌──────────────────────────────────┐
+                                    │   Azure ADLS Gen2 (Zone raw)     │
+                                    │  - Données métiers CSV           │
+                                    │  - country_currency.csv          │
+                                    │  - exchange_rates.json           │
+                                    └────────────────┬─────────────────┘
+                                                     │
+                                                     ▼
+┌────────────────────────────────┐       ┌──────────────────────────────────┐
+│   External Rates API           │ ───>  │   Ingestion & Cache Local        │
+│  (Taux de change en temps réel)│       │   (data/ & data/reference/)      │
+└────────────────────────────────┘       └────────────────┬─────────────────┘
+                                                          │
+                                                          ▼
+┌───────────────────────────────────────────────────────────────────────────┐
+│   PySpark Execution Engine (src/)                                         │
+│   ├── reader.py      : Ingestion & application du MapType schema          │
+│   ├── transformer.py : Clean orders, customers & calcul sous-totaux       │
+│   ├── enrichment.py  : Join country & crossJoin rates (element_at)        │
+│   └── writer.py       : Écriture Parquet & Upload Cloud                   │
+└────────────────────────────────┬──────────────────────────────────────────┘
+                                 │
+                 ┌───────────────┴───────────────┐
+                 ▼                               ▼
+┌────────────────────────────────┐   ┌──────────────────────────────────┐
+│  Automated Testing (tests/)    │   │   Azure ADLS Gen2 (Zone clean)   │
+│  - Mocks PySpark (sans réseau) │   │   - Dataset enrichi en Parquet   │
+│  - Execution via PyTest        │   │   - Partitionné par pays         │
+└────────────────────────────────┘   └──────────────────────────────────┘
+
 ```
 ---
 
@@ -39,7 +56,7 @@ Chaque nuit, **TradeCorp International** reçoit ses données commerciales sous 
 
 * **Docker & Dev Containers** : Garantit la reproductibilité exacte de l'environnement de développement et de production.
 * **Apache Spark (PySpark)** : Moteur de calcul distribué pour le traitement à grande échelle, l'enrichissement et les agrégations complexes (**Window Functions**).
-* **Format Parquet & Partitionnement** : Format de stockage en colonnes hautement compressé. Partitionnement par pays (`partitionBy('country')`) pour optimiser le *Partition Pruning*.
+* **Format Parquet & Partitionnement** : Format de stockage en colonnes hautement compressé. 
 * **PostgreSQL (Driver JDBC `42.7.0`)** : Entrepôt de données relationnel pour l'exposition des KPI métiers.
 * **Azure ADLS Gen2 & Key Vault** : Stockage Cloud Data Lake centralisé (zones `raw` / `clean`) et gestion ultra-sécurisée des secrets.
 * **Apache Airflow** : Orchestration automatisée, gestion des dépendances et suivi des exécutions.
@@ -50,15 +67,26 @@ Chaque nuit, **TradeCorp International** reçoit ses données commerciales sous 
 ## 📂 Structure du Dépôt
 
 ```
-brief_spark/
-├── .gitignore                  # Exclusion des données brutes, secrets et caches
-├── README.md                   # Documentation principale du projet
-├── docker-compose.yml          # Définition des services Spark et Postgres
-├── data/                       # Données brutes CSV et exports (ignoré par Git)
-└── notebooks/                  # Phase d'exploration et prototypage
-    ├── 01_exploration.ipynb    # Ingestion initiale et analyse de schéma
-    ├── 02_nettoyage.ipynb      # Traitement des nuls, jointures et filtres
-    └── 03_transformations.ipynb# Window Functions (cumul) et export JDBC/Parquet
+tradecorp/
+├── .env                       # Variables d'environnement & identifiants Azure (ignoré)
+├── .gitignore                 # Exclusion des logs, environnements et caches
+├── README.md                  # Documentation du projet
+├── Dockerfile                 # Image conteneurisée PySpark
+├── docker-compose.yml         # Orchestration des services
+├── requirements.txt           # Dépendances Python (pyspark, azure-storage-blob, pytest)
+├── data/                      # Données locales brutes et référentiels
+│   └── reference/             # Referentiels locaux (country_currency.csv, exchange_rates.json)
+├── notebooks/                 # Exploration et prototypage
+├── src/                       # Code source modulaire du pipeline
+│   ├── reader.py              # Ingestion Azure ADLS & création SparkSession
+│   ├── transformer.py         # Métrique métier et calculs sous-totaux
+│   ├── enrichment.py          # Logique d'enrichissement devises & conversion
+│   ├── writer.py              # Export Parquet & Upload Azure ADLS
+│   ├── utils.py               # Utilitaires de gestion du Data Lake
+│   └── pipeline.py            # Script d'exécution principal du pipeline ETL
+└── tests/                     # Suite de tests unitaires automatisés
+├── run_tests.py               # Runner de tests
+└── test_transformers.py       # Tests unitaires PySpark (mock DataFrame & devises)
 ```
 ---
 

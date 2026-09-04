@@ -1,21 +1,27 @@
 services:
   spark:
-    image: jupyter/pyspark-notebook
-    container_name: tradecorp_training_spark
+    build: .
+    container_name: tradecorp_spark
     ports:
       - "8888:8888"
       - "4041:4040"
     volumes:
       - ./data:/home/jovyan/data
       - ./notebooks:/home/jovyan/work
-    
+      - ./src:/home/jovyan/src
+      - ./env:/home/jovyan/env
+      - ./tests:/home/jovyan/tests
+
+    env_file:
+      - .env
+      
     environment:
       - SPARK_OPTS=--packages org.postgresql:postgresql:42.7.0
       - PYSPARK_SUBMIT_ARGS=--packages org.postgresql:postgresql:42.7.0 pyspark-shell
-  
+    
   postgres:
     image: postgres:16
-    container_name: tradecorp_training_postgres
+    container_name: tradecorp_postgres
     environment:
       POSTGRES_USER: tradecorp 
       POSTGRES_PASSWORD: tradecorp
@@ -27,3 +33,4 @@ services:
 
 volumes:
   pgdata:
+
