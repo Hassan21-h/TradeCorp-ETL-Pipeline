@@ -74,8 +74,20 @@ tradecorp/
 ├── Dockerfile                 # Image conteneurisée PySpark
 ├── docker-compose.yml         # Orchestration des services
 ├── requirements.txt           # Dépendances Python (pyspark, azure-storage-blob, pytest)
-├── data/                      # Données locales brutes et référentiels
-│   └── reference/             # Referentiels locaux (country_currency.csv, exchange_rates.json)
+├── data/                      # Stockage local des fichiers (ignoré par Git)
+│   ├── clean/                 # Sorties nettoyées et formatées
+│   ├── output/                # Fichiers de restitution finalisés
+│   ├── raw/                   # Zone de réception des données brutes
+│   ├── reference/             # Référentiels (country_currency.csv, exchange_rates.json)
+│   ├── tmp/                   # Fichiers temporaires de traitement
+│   ├── categories.csv         # Référentiel catégories produits
+│   ├── customers.csv          # Données clients
+│   ├── employees.csv          # Données employés
+│   ├── order_details.csv      # Lignes de détail des commandes
+│   ├── orders.csv             # Entêtes de commandes
+│   ├── products.csv           # Catalogue produits
+│   ├── shippers.csv           # Transporteurs
+│   └── suppliers.csv          # Fournisseurs
 ├── notebooks/                 # Exploration et prototypage
 ├── src/                       # Code source modulaire du pipeline
 │   ├── reader.py              # Ingestion Azure ADLS & création SparkSession
@@ -87,6 +99,7 @@ tradecorp/
 └── tests/                     # Suite de tests unitaires automatisés
 ├── run_tests.py               # Runner de tests
 └── test_transformers.py       # Tests unitaires PySpark (mock DataFrame & devises)
+
 ```
 ---
 
