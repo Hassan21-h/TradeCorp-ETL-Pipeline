@@ -117,8 +117,33 @@ tradecorp/
 * Fichier `.env` renseigné à la racine avec les identifiants Azure (`account_name`, `account_key`).
 
 ### 2. Démarrage de l'infrastructure
-* Lancer l'ensemble des conteneurs : `docker compose up --build`
-* Vérifier le statut : `docker compose ps`
+
+Lancer l'ensemble des conteneurs (spark, postgres, airflow) :
+
+```bash
+docker compose up --build
+```
+
+Vérifier le statut :
+
+```bash
+docker compose ps
+```
+
+Suivre les logs d'un service en particulier, par exemple Airflow au démarrage :
+
+```bash
+docker logs -f tradecorp_airflow
+```
+
+Pour repartir d'un environnement totalement propre (supprime aussi la base Postgres, y compris les métadonnées Airflow) :
+
+```bash
+docker compose down -v
+docker compose up --build
+```
+
+Un simple `docker compose down` (sans `-v`) arrête les conteneurs mais conserve les données du volume `pgdata` — à privilégier pour un redémarrage courant.
 
 ### 3. Accès aux interfaces web
 * **JupyterLab :** `http://localhost:8888`
@@ -148,13 +173,31 @@ fetch_exchange_rates  →  reader  →  transformer  →  writer
 
 Les tâches `DockerOperator` s'exécutent dans des conteneurs Spark éphémères (image `tradecorp-spark`), lancés côte à côte du conteneur Airflow via le socket Docker de l'hôte (`/var/run/docker.sock`). Les identifiants Azure (`account_name`, `account_key`) sont transmis explicitement à chaque conteneur enfant via le paramètre `environment` de `DockerOperator`, et les répertoires `src/`, `data/` sont partagés par bind mount pour l'échange de fichiers entre les étapes.
 
-### Vérification manuelle
+### Déclencher ou relancer le DAG
 
-Déclencher un run sans attendre l'échéance cron :
+**Depuis l'interface web** (`http://localhost:8081`) : sur la page listant les DAGs, basculer le toggle à gauche de `tradecorp_etl_pipeline` sur **ON** — tout nouveau DAG est mis en pause à sa création, il ne s'exécute pas tant qu'il n'a pas été activé manuellement. Cliquer ensuite sur le bouton **▶ (Trigger DAG)** pour lancer un run immédiat, sans attendre l'échéance cron.
+
+**En ligne de commande**, depuis le conteneur Airflow :
 
 ```bash
 docker exec -it tradecorp_airflow airflow dags trigger tradecorp_etl_pipeline
 ```
+
+**Relancer une tâche précise après un échec** (par exemple si `reader` est passé en `failed`), plutôt que de relancer tout le DAG depuis le début : dans l'UI, cliquer sur la tâche concernée puis sur **Clear** — Airflow ne réexécute que cette tâche et celles qui en dépendent en aval (`transformer`, `writer`), pas les tâches déjà réussies en amont.
+
+**Suivre l'exécution en direct** :
+
+```bash
+docker logs -f tradecorp_airflow
+```
+
+Ou, pour les logs d'une tâche précise, cliquer sur son rectangle dans le graphe du DAG (UI) puis sur **Logs**.
+
+### Le rôle de `catchup`
+
+Le DAG est configuré avec `catchup=False`. Par défaut, Airflow considère qu'un DAG doit rattraper **toutes les exécutions passées** entre sa `start_date` et aujourd'hui dès qu'il est activé — par exemple, si `start_date=datetime(2024, 1, 1)` et que le DAG est activé le 8 septembre 2026, Airflow tenterait de déclencher un run pour **chaque jour manqué** depuis 2024, soit plus de 900 exécutions d'un coup.
+
+`catchup=False` désactive ce comportement : à l'activation, Airflow ne planifie que le **prochain** run à venir selon le `schedule_interval` (ici, le prochain 6h00 UTC), sans chercher à combler l'historique. C'est le réglage attendu ici, puisque le pipeline traite des données du jour (taux de change, commandes) — rejouer des runs pour des dates passées n'aurait pas de sens métier et surchargerait inutilement Postgres, Azure et les workers Spark au premier démarrage.
 
 ---
 
