@@ -1,4 +1,5 @@
-from pyspark.sql import DataFrame
+import os
+from pyspark.sql import SparkSession, DataFrame
 import pyspark.sql.functions as F
 
 from utils import (
@@ -7,8 +8,9 @@ from utils import (
     clean_order_details,
     add_sous_total,
     clean_products,
-    clean_employees
+    clean_employees,
 )
+
 
 def build_enriched(dataframes: dict) -> DataFrame:
     df_customers = clean_customers(dataframes["customers"])
@@ -35,7 +37,6 @@ def build_enriched(dataframes: dict) -> DataFrame:
         .join(df_shippers, df_orders["shipper_id"] == df_shippers["shipper_id"], how="left")
     )
 
-    # 4. Sélection strictement alignée sur l'image
     df_orders_enriched = df_orders_enriched.select(
         F.col("order_id").cast("integer"),
         F.col("customer_id").cast("string"),
@@ -57,7 +58,25 @@ def build_enriched(dataframes: dict) -> DataFrame:
         F.col("category_name"),
         F.col("en_stock").cast("boolean"),
         df_employees["full_name"],
-        df_shippers["company_name"].alias("shipper_name")
+        df_shippers["company_name"].alias("shipper_name"),
     )
 
     return df_orders_enriched
+
+
+if __name__ == "__main__":
+    STAGING_DIR = "/home/jovyan/data/staging"
+    OUTPUT_DIR = "/home/jovyan/data/transformed"
+
+    spark = SparkSession.builder.appName("transformer").getOrCreate()
+
+    tables = ["customers", "orders", "order_details", "products", "employees", "categories", "shippers"]
+    dataframes = {
+        name: spark.read.parquet(os.path.join(STAGING_DIR, name)) for name in tables
+    }
+
+    df_result = build_enriched(dataframes)
+    df_result.write.mode("overwrite").parquet(OUTPUT_DIR)
+
+    print(f"Résultat enrichi écrit dans {OUTPUT_DIR}")
+    spark.stop()

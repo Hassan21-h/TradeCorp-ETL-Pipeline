@@ -31,6 +31,35 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
 
+  airflow:
+    build:
+      context: .
+      dockerfile: Dockerfile.airflow
+    container_name: tradecorp_airflow
+    entrypoint: []
+    depends_on:
+      - postgres
+    env_file:
+      - .env
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://tradecorp:tradecorp@postgres/tradecorp
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./src:/opt/airflow/src
+      - ./.env:/opt/airflow/.env
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: >
+      bash -c "
+      until (echo > /dev/tcp/postgres/5432) 2>/dev/null; do echo 'En attente de Postgres...'; sleep 2; done;
+      airflow db migrate;
+      airflow users create --username admin --password admin --firstname Admin --lastname Admin --role Admin --email admin@admin.com || echo 'User already exists, skipping';
+      airflow scheduler &
+      exec airflow webserver
+      "
+
 volumes:
   pgdata:
-
