@@ -7,18 +7,16 @@ def enrich_with_currency(
     df_country_currency: DataFrame, 
     df_exchange_rates: DataFrame
 ) -> DataFrame:
-    """
-    Enrichit les commandes avec la devise du client et calcule le sous_total_local.
-    """
-    # 1. Jointure avec la table de référence pays -> devise
+
+    # 1. Jointure entre la table pays et la table devise
     df_orders_enriched = df_orders_enriched.join(
         df_country_currency,
         df_orders_enriched["customer_country"] == df_country_currency["country"],
         how="left"
     )
+
     
     # 2. Jointure croisée avec la ligne unique de taux de change
-    #    On convertit le STRUCT en MAP<string, double> pour un accès dynamique par clé
     df_rates_map = df_exchange_rates.select(
         F.from_json(
             F.to_json(F.col("rates")),
@@ -26,6 +24,7 @@ def enrich_with_currency(
         ).alias("rates")
     )
     df_orders_enriched = df_orders_enriched.crossJoin(df_rates_map)
+
     
     # 3. Extraction du taux dynamique et calcul du sous-total local
     df_orders_enriched = (

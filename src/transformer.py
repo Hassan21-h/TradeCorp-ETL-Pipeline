@@ -11,7 +11,7 @@ from utils import (
     clean_employees,
 )
 
-
+# Construit le DataFrame enrichi en joignant et nettoyant toutes les tables
 def build_enriched(dataframes: dict) -> DataFrame:
     df_customers = clean_customers(dataframes["customers"])
     df_orders = clean_orders(dataframes["orders"])

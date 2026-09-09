@@ -7,11 +7,12 @@ from pyspark.sql import SparkSession, DataFrame
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
 
-
+# Écrit un DataFrame Spark en format Parquet en local
 def write_to_parquet(df: DataFrame, local_path: str, mode: str = "overwrite") -> None:
     df.write.mode(mode).parquet(local_path)
 
-
+# Uploade tous les fichiers d'un dossier local vers Azure Blob Storage
+# Supprime les anciens fichiers avant l'upload
 def upload_directory_to_blob(local_dir: str, container_name: str, remote_prefix: str) -> None:
     account_name = os.getenv("account_name")
     account_key = os.getenv("account_key")

@@ -4,7 +4,7 @@ from pyspark.sql import SparkSession
 from utils import add_sous_total, clean_customers, clean_orders
 from enrichment import enrich_with_currency
 
-
+# Session Spark partagée pour tous les tests
 @pytest.fixture(scope="session")
 def spark():
     spark = SparkSession.builder.appName("pytest-spark").master("local[1]").getOrCreate()
@@ -12,6 +12,7 @@ def spark():
     spark.stop()
 
 
+# Vérifie que le sous_total = quantite × prix_unitaire × (1 - discount)
 def test_add_sous_total(spark):
     data = [(1, 10, 20.0, 0.0), (2, 5, 5.0, 0.1)]
     df = spark.createDataFrame(data, ["order_id", "quantite", "prix_unitaire", "discount"])
@@ -21,6 +22,8 @@ def test_add_sous_total(spark):
     assert resultats == [200.0, 22.5]
 
 
+
+# Vérifie que le nom est en title case et le pays en majuscules
 def test_clean_customers(spark):
     data = [
         (1, "tradecorp", " frederic ", " ouzbekistan ", "title", "addr", "city", "region"),
@@ -37,10 +40,12 @@ def test_clean_customers(spark):
     assert results[1]["country"] == "MOLDAVIE"
 
 
+
+# Vérifie que les commandes sans shipped_date sont supprimées
 def test_clean_orders(spark):
     data = [
-        (101, "2023-01-01", "2023-01-05", "2023-01-04", 10.0),  # shipped_date renseignée -> gardée
-        (102, "2023-01-02", "2023-01-06", None, 20.0),          # shipped_date null -> supprimée
+        (101, "2023-01-01", "2023-01-05", "2023-01-04", 10.0),  
+        (102, "2023-01-02", "2023-01-06", None, 20.0),          
     ]
     columns = ["order_id", "order_date", "required_date", "shipped_date", "freight"]
     df = spark.createDataFrame(data, columns)
@@ -51,6 +56,8 @@ def test_clean_orders(spark):
     assert df_result.collect()[0]["order_id"] == 101
 
 
+
+# Vérifie la conversion du sous_total dans la devise locale du pays client
 def test_add_currency_column(spark):
     df_orders = spark.createDataFrame(
         [(101, "FRANCE", 100.0), (102, "USA", 200.0), (103, "JAPAN", 10000.0), (104, "UNKNOWN", 50.0)],

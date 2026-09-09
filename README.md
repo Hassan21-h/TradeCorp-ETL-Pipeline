@@ -18,7 +18,8 @@ Chaque nuit, **TradeCorp International** reçoit ses données commerciales sous 
 
 ## 🏗️ Architecture Technique Target
 
-```
+``` mermaid
+flowchart TD
                                     ┌──────────────────────────────────┐
                                     │   Azure ADLS Gen2 (Zone raw)     │
                                     │  - Données métiers CSV           │

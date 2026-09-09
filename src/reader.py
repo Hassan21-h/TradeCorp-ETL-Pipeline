@@ -3,8 +3,9 @@ from azure.storage.blob import BlobServiceClient
 from pyspark.sql import SparkSession, DataFrame
 
 
+# Téléchargement des fichiers spécifiés depuis Azure vers le dossier local.
 def download_raw_files(container_name: str, files: list[str], target_dir: str) -> None:
-    """Télécharge les fichiers spécifiés depuis Azure vers le dossier local."""
+    
     account_name = os.getenv("account_name")
     account_key = os.getenv("account_key")
 
@@ -28,9 +29,8 @@ def download_raw_files(container_name: str, files: list[str], target_dir: str) -
 def get_spark_session() -> SparkSession:
     return SparkSession.builder.appName("TradeCorp_Ingestion").getOrCreate()
 
-
+# Chargement des fichiers CSV téléchargés en DataFrames PySpark.
 def read_csv_files(spark: SparkSession, data_dir: str, files: list[str]) -> dict[str, DataFrame]:
-    """Charge les fichiers CSV téléchargés en DataFrames PySpark."""
     return {
         f.replace(".csv", ""): spark.read.csv(
             os.path.join(data_dir, f), header=True, inferSchema=True
@@ -38,7 +38,7 @@ def read_csv_files(spark: SparkSession, data_dir: str, files: list[str]) -> dict
         for f in files
     }
 
-
+# Téléchargement et chargement des fichiers dans reference (devise et taux de change)
 def read_reference(spark: SparkSession, target_dir: str) -> dict[str, DataFrame]:
     files_to_download = [
         "reference/country_currency.csv",
@@ -55,9 +55,9 @@ def read_reference(spark: SparkSession, target_dir: str) -> dict[str, DataFrame]
     }
 
 
+# Téléchargement et chargement des tables nécessaires à build_enriched().
 def read_business_data(spark: SparkSession, target_dir: str) -> dict[str, DataFrame]:
-    """Télécharge et charge les tables métier nécessaires à build_enriched()."""
-    # À ADAPTER si les noms exacts diffèrent dans ton container "raw"
+    
     business_files = [
         "customers.csv",
         "orders.csv",

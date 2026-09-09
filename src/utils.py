@@ -20,7 +20,7 @@ def list_containers():
         print(f" - {container.name}")
 
 
-# Fonction nettoyage de la table customers
+# Nettoyage de la table customers
 def clean_customers(df: DataFrame) -> DataFrame:
     df_customers = (
         df.withColumn("company_name", F.trim(F.col("company_name")))
@@ -36,7 +36,7 @@ def clean_customers(df: DataFrame) -> DataFrame:
     return df_customers
 
 
-# Fonction nettoyage de la table orders
+# Nettoyage de la table orders
 def clean_orders(df: DataFrame) -> DataFrame:
     df_orders = (
         df.withColumns({
@@ -53,7 +53,7 @@ def clean_orders(df: DataFrame) -> DataFrame:
     return df_orders
 
 
-# Fonction nettoyage de la table order_details
+# Nettoyage de la table order_details
 def clean_order_details(df: DataFrame) -> DataFrame:
     df_order_details = (
         df.withColumns({
@@ -82,7 +82,7 @@ def add_sous_total(df: DataFrame) -> DataFrame:
     return df_order_details
 
 
-# Fonction nettoyage de la table employees
+# Nettoyage de la table employees
 def clean_employees(df: DataFrame) -> DataFrame:
     df_employees = (
         df.select(
@@ -109,7 +109,7 @@ def clean_employees(df: DataFrame) -> DataFrame:
     return df_employees
 
 
-# Fonction nettoyage de la table products
+# Nettoyage de la table products
 def clean_products(df: DataFrame) -> DataFrame:
     df_products = (
         df.withColumns({

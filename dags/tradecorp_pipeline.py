@@ -5,6 +5,8 @@ from airflow.providers.docker.operators.docker import DockerOperator
 from docker.types import Mount
 from datetime import datetime, timedelta
 
+
+# Credentials Azure récupérés depuis les variables d'environnement
 ENV_VARS = {
     "account_name": os.getenv("account_name"),
     "account_key": os.getenv("account_key"),
@@ -17,8 +19,11 @@ default_args = {
     "retry_delay": timedelta(minutes=5),   # attendre 5 min avant de réessayer
 }
 
+
+# Chemins locaux montés dans les containers Spark
 PROJECT_ROOT = "C:\\Users\\hasss\\Desktop\\Data_Engineer\\Semaine_6_Docker_Spark\\tradecorp"
 
+# Montage des dossiers locaux dans le container Docker (bind mount)
 MOUNTS = [
     Mount(source=f"{PROJECT_ROOT}/src", target="/home/jovyan/src", type="bind"),
     Mount(source=f"{PROJECT_ROOT}/data", target="/home/jovyan/data", type="bind"),
@@ -34,11 +39,16 @@ with DAG(
     tags=["tradecorp", "etl"],
 ) as dag:
 
+
+
+    # Récupération des taux de change depuis l'API
     t0 = BashOperator(
         task_id="fetch_exchange_rates",
         bash_command="python /opt/airflow/src/fetch_exchange_rates.py", 
     )
 
+
+    # Lecture des données brutes et écriture en Parquet
     t1 = DockerOperator(
         task_id="reader",
         image="tradecorp-spark",
@@ -51,6 +61,8 @@ with DAG(
         environment=ENV_VARS,
     )
 
+
+    # Nettoyage, enrichissement et jointures des données
     t2 = DockerOperator(
         task_id="transformer",
         image="tradecorp-spark",
@@ -63,6 +75,8 @@ with DAG(
         environment=ENV_VARS,
     )
 
+
+    # Export du DataFrame enrichi vers Azure Blob Storage
     t3 = DockerOperator(
         task_id="writer",
         image="tradecorp-spark",
@@ -75,4 +89,6 @@ with DAG(
         environment=ENV_VARS,
     )
 
+
+    # Ordre d'exécution du pipeline ETL
     t0 >> t1 >> t2 >> t3
