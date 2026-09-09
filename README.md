@@ -18,8 +18,7 @@ Chaque nuit, **TradeCorp International** reçoit ses données commerciales sous 
 
 ## 🏗️ Architecture Technique Target
 
-``` mermaid
-flowchart TD
+```
                                     ┌──────────────────────────────────┐
                                     │   Azure ADLS Gen2 (Zone raw)     │
                                     │  - Données métiers CSV           │
@@ -161,8 +160,8 @@ Le pipeline ETL est déclenché automatiquement chaque jour à **6h00 UTC** (`sc
 ### Enchaînement des tâches
 
 ```
-fetch_exchange_rates  →  reader  →  transformer  →  writer
-     (BashOperator)      (DockerOperator)  (DockerOperator)  (DockerOperator)
+fetch_exchange_rates  →         reader        →       transformer         →          writer
+   (BashOperator)          (DockerOperator)          (DockerOperator)             (DockerOperator)
 ```
 
 | Tâche | Opérateur | Rôle |
